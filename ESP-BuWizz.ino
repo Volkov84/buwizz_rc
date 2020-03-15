@@ -14,7 +14,7 @@ int ch[CHANNEL_AMOUNT + 1];
 
 static BLEUUID serviceUUID("4e050000-74fb-4481-88b3-9919b1676e93"); //Service UUID of BuWizz 
 static BLEUUID charUUID(BLEUUID((uint16_t)0x92d1)); //Characteristic  UUID of BuWizz control
-String My_BLE_Address = "50:fa:ab:f5:43:55"; //MAC of the BuWizz
+//String My_BLE_Address = "50:fa:ab:f5:43:55"; //MAC of the BuWizz
 static BLERemoteCharacteristic* pRemoteCharacteristic;
 
 BLEScan* pBLEScan; //Name the scanning device as pBLEScan
@@ -25,6 +25,7 @@ String Scaned_BLE_Address;
 
 boolean paired = false; //boolean variable to toggel pairing
 boolean DEBUGGING = false; //Debuging Serial output. Slows down the operation.. Used for dev only. Basic serial will still on, only the main loop is disabled.
+boolean notfound = true;
 
 int8_t ch1; //Temp variable for CH1
 int8_t ch2; //Temp variable for CH2
@@ -37,18 +38,21 @@ boolean mode_fast = false;
 
 bool connectToserver (BLEAddress pAddress){
     BLEClient*  pClient  = BLEDevice::createClient();
-    //          // Connect to the BLE Server.
     boolean connection_ok = false;
     while (!connection_ok){
-      pClient->connect(BLEAddress("50:fa:ab:f5:43:55"));
-      Serial.println("Tring to connect....");
-      if (pClient->isConnected()) connection_ok = true;
+      Serial.println("Connecting to BuWizz...");
+      pClient->connect(BLEAddress(pAddress));
+      if (pClient->isConnected()){
+        connection_ok = true;
+        Serial.println("Connected to BuWizz");
+      }
     }
-    Serial.println(" - Connected to BuWizz");
+    
+    
     BLERemoteService* pRemoteService = pClient->getService(serviceUUID);     // Obtain a reference to the service we are after in the remote BLE server.
     if (pRemoteService != nullptr)
     {
-      Serial.println(" - Found our service");
+      Serial.println(" - Found the service");
     }
     else
     return false;
@@ -56,7 +60,7 @@ bool connectToserver (BLEAddress pAddress){
     pRemoteCharacteristic = pRemoteService->getCharacteristic(charUUID);     // Obtain a reference to the characteristic in the service of the remote BLE server.
     if (pRemoteCharacteristic != nullptr)
     {
-      Serial.println(" - Found our characteristic");
+      Serial.println(" - Found the characteristic");
       return true;
     }
     else
@@ -67,8 +71,14 @@ class MyAdvertisedDeviceCallbacks: public BLEAdvertisedDeviceCallbacks
 {
     void onResult(BLEAdvertisedDevice advertisedDevice) {
       Serial.printf("Scan Result: %s \n", advertisedDevice.toString().c_str());
-      Server_BLE_Address = new BLEAddress(advertisedDevice.getAddress());
-      Scaned_BLE_Address = Server_BLE_Address->toString().c_str();
+        if (advertisedDevice.getName() == "BuWizz"){
+          Serial.println("BuWizz found! MAC address:");
+          advertisedDevice.getScan()->stop();
+          notfound=false;
+          Server_BLE_Address = new BLEAddress(advertisedDevice.getAddress());
+          Scaned_BLE_Address = Server_BLE_Address->toString().c_str();
+          Serial.println(Scaned_BLE_Address);
+          }
     }
 };
 
@@ -82,21 +92,13 @@ void setup() {
     pBLEScan = BLEDevice::getScan(); //create new scan
     pBLEScan->setAdvertisedDeviceCallbacks(new MyAdvertisedDeviceCallbacks()); //Call the class that is defined above 
     pBLEScan->setActiveScan(false); //active scan uses more power, but get results faster
-    pBLEScan->start(15);
-      //delay(2000);
-    
-    while (paired == false){   
-      if (connectToserver(*Server_BLE_Address))
-        {
-          paired = true;
-          break;
-          }
-        else
-        {
-          Serial.println("Pairing failed");
-          break;
-          }
-        }
+
+    while (notfound == true){ //Searching for BLE device names "BuWizz"
+      pBLEScan->start(3); 
+      }
+    while (connectToserver(*Server_BLE_Address) != true){  
+      Serial.println("Tikk-Takk.. waiting..");
+    }
 }
 
 void loop() {
