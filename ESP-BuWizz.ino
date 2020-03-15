@@ -44,6 +44,7 @@ bool connectToserver (BLEAddress pAddress){
       pClient->connect(BLEAddress(pAddress));
       if (pClient->isConnected()){
         connection_ok = true;
+        paired = true;
         Serial.println("Connected to BuWizz");
       }
     }
@@ -99,6 +100,8 @@ void setup() {
     while (connectToserver(*Server_BLE_Address) != true){  
       Serial.println("Tikk-Takk.. waiting..");
     }
+    
+    pRemoteCharacteristic->writeValue((uint8_t*)modeselect, 2, true);
 }
 
 void loop() {
