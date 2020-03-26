@@ -15,3 +15,13 @@ The interrupt code was found somewhere on the internet, instructables maybe.
 
 ## BLE connenction
 Based on the example code in the ESP32 libary
+
+## FlySky GT3C
+The ESP can directly connect to the PPM pin in the transmitter. I've never measured above 3.7V here.
+3.3 would be better, but... well... the smoke is still in the ESP32 :)
+
+<img src="IMG_2828.jpeg" width="324">
+
+However, the 5V pin is not 5V, it's only the battery voltage, so 4.2 maximum, this is not enough for the ESP32. A separate battery-to-5V module was needed to add.
+
+<img src="IMG_2829.jpeg" width="324">
